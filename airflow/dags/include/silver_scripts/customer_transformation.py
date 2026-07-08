@@ -22,7 +22,6 @@ if customer_df.count()>0:
         .withColumnRenamed("email","cust_email")\
     
     current_ts=current_timestamp()
-    # current_date=date.today()
     record_end_ts=lit('9999-12-31').cast(TimestampType())
     active_flag=lit(1)
     concatenated_customer_fields = concat_ws(''
