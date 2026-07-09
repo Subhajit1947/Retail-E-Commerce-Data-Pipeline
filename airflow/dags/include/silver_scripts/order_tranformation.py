@@ -23,12 +23,11 @@ if order_df.count()>0:
                         .drop("op")
     orders_final_df=renamed_orders\
                     .withColumn("order_year", year(col("order_date")))\
-                    .withColumn("order_year_pk", year(col("order_date")))\
                     .withColumn("order_month", month(col("order_date")))\
                     .withColumn("ingestion_date", current_date())\
                     .orderBy(col("order_date").desc())
     orders_final_df.write \
-        .partitionBy("ingestion_date") \
+        .partitionBy("order_year")\
         .mode("overwrite") \
         .parquet(f"s3://{os.environ['S3_BUCKET']}/Silver/orders/")
 
