@@ -23,8 +23,7 @@ if order_details_df.count()>0:
     
 
     #create dataframe with new columns using withColumn()
-    order_details_final_df = renamed_order_details.withColumn("ingestion_date",current_date())\
-                                .withColumn("ingestion_date_pk",current_date())
+    order_details_final_df = renamed_order_details.withColumn("ingestion_date",current_date())
 
     order_details_final_df.write \
         .partitionBy("ingestion_date") \
