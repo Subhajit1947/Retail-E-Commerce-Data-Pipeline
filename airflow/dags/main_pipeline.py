@@ -43,6 +43,22 @@ order_script_upload_task = PythonOperator(
     op_kwargs=dict(
         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/order_tranformation.py", 
         key = "Scripts/order_tranformation.py"
+customer_script_upload_task = PythonOperator(
+    task_id= 'Cust_Script_To_S3',
+    python_callable= upload_to_s3,
+    op_kwargs=dict(
+        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/customer_transformation.py", 
+        key = "Scripts/customer_transformation.py"
+    )
+)
+
+
+product_script_upload_task = PythonOperator(
+    task_id= 'Cust_Script_To_S3',
+    python_callable= upload_to_s3,
+    op_kwargs=dict(
+        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/product_transformation.py", 
+        key = "Scripts/product_transformation.py"
     )
 )
 
