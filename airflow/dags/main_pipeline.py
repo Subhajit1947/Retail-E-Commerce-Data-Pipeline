@@ -150,12 +150,13 @@ is_emr_cluster_created=EmrJobFlowSensor(
     aws_conn_id="aws_default"
 )
 customer_silver_job  = EmrAddStepsOperator(
-        task_id="Submitting_Spark_Job_customer",
-        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
-        aws_conn_id="aws_default",
-        steps=SPARK_STEPS,
-        params={
-            "BUCKET_NAME": s3_bucket,
-            "SCRIPT_KEY": "Scripts/customer_transformation.py"
-        },
-    )
+    task_id="Submitting_Spark_Job_customer",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+    aws_conn_id="aws_default",
+    steps=SPARK_STEPS,
+    params={
+        "BUCKET_NAME": s3_bucket,
+        "SCRIPT_KEY": "Scripts/customer_transformation.py",
+        "BATCH_NAME":"Customer Silver Batch"
+    },
+)
