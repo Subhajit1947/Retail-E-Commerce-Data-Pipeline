@@ -55,9 +55,10 @@ JOB_FLOW_OVERRIDES = {
     'VisibleToAllUsers': True
 }
 
-CUST_SPARK_STEPS = [
+
+SPARK_STEPS = [
     {
-        "Name": "Customer Batch Process",
+        "Name": "{{params.BATCH_NAME}}",
         "ActionOnFailure": "CANCEL_AND_WAIT",
         "HadoopJarStep": {
             "Jar": "command-runner.jar",
@@ -70,6 +71,7 @@ CUST_SPARK_STEPS = [
         },
     },
 ]
+
 
 
 
@@ -151,7 +153,7 @@ customer_silver_job  = EmrAddStepsOperator(
         task_id="Submitting_Spark_Job_customer",
         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
         aws_conn_id="aws_default",
-        steps=CUST_SPARK_STEPS,
+        steps=SPARK_STEPS,
         params={
             "BUCKET_NAME": s3_bucket,
             "SCRIPT_KEY": "Scripts/customer_transformation.py"
