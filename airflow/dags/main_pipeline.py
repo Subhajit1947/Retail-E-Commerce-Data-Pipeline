@@ -3,6 +3,11 @@ from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.hooks.s3_hook import S3Hook
+
+from airflow.contrib.operators.emr_create_job_flow_operator import (
+    EmrCreateJobFlowOperator,
+)
+
 from datetime import datetime
 
 from include.utils.helper import run_daily_pipeline
@@ -17,6 +22,36 @@ AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME','/opt/airflow')
 def upload_to_s3(filename, key):
     hook = S3Hook()
     hook.load_file(filename=filename, key=key, bucket_name=s3_bucket, replace=True)
+
+
+JOB_FLOW_OVERRIDES = {
+    "Name": "Retail Batch",
+    "ReleaseLabel": "emr-6.4.0",
+    "Applications": [{"Name": "Spark"}],
+    'Instances': {
+        'InstanceGroups': [
+            {
+                'Name': 'Master node',
+                'Market': 'SPOT',
+                'InstanceRole': 'MASTER',
+                'InstanceType': 'm4.xlarge',
+                'InstanceCount': 1,
+            },
+            {
+                "Name": "Core - 2",
+                "Market": "SPOT", # Spot instances are a "use as available" instances
+                "InstanceRole": "CORE",
+                "InstanceType": "m4.xlarge",
+                "InstanceCount": 1,
+            },
+        ],
+        "KeepJobFlowAliveWhenNoSteps": True,
+        "TerminationProtected": False,
+    },
+    "JobFlowRole": "EMR_EC2_DefaultRole",
+    "ServiceRole": "EMR_DefaultRole",
+    'VisibleToAllUsers': True
+}
 
 
 dag=DAG(
@@ -71,4 +106,13 @@ product_script_upload_task = PythonOperator(
         key = "Scripts/product_transformation.py"
     )
 )
+
+create_emr_cluster = EmrCreateJobFlowOperator(
+        task_id="Create_EMR_Cluster",
+        job_flow_overrides=JOB_FLOW_OVERRIDES,
+        aws_conn_id="aws_default",
+        emr_conn_id="emr_default"
+    )
+
+
 
