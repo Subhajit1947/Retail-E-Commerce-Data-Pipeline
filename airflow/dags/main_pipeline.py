@@ -5,8 +5,9 @@ from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.hooks.s3_hook import S3Hook
 
 from airflow.contrib.operators.emr_create_job_flow_operator import (
-    EmrCreateJobFlowOperator,
+    EmrCreateJobFlowOperator
 )
+from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
 
 from datetime import datetime
 
@@ -114,5 +115,13 @@ create_emr_cluster = EmrCreateJobFlowOperator(
         emr_conn_id="emr_default"
     )
 
-
+is_emr_cluster_created=EmrJobFlowSensor(
+    task_id="Is_EMR_Created",
+    job_flow_id="{{task_instance.xcom_pull(task_id='Create_EMR_Cluster',key='return_value)}}",
+    target_states={"WAITING"},
+    timeout=3600,
+    poke_interval=5,
+    mode='poke',
+    aws_conn_id="aws_default"
+)
 
