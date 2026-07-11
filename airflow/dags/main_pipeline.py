@@ -142,7 +142,7 @@ is_emr_cluster_created=EmrJobFlowSensor(
 )
 
 order_silver_job = EmrAddStepsOperator(
-        task_id="Submitting_Spark_Job",
+        task_id="Submitting_Spark_Job_Order",
         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
         aws_conn_id="aws_default",
         steps=SPARK_STEPS,
