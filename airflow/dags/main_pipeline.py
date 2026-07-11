@@ -167,6 +167,7 @@ order_silver_job = EmrAddStepsOperator(
             "SCRIPT_KEY": "Scripts/order_transformation.py",
             "BATCH_NAME": "Order Silver Batch"
         },
+)
 product_silver_job = EmrAddStepsOperator(
         task_id="Submitting_Spark_Job_Product",
         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
