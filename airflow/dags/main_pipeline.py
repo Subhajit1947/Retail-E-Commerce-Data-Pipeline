@@ -7,7 +7,6 @@ from airflow.hooks.s3_hook import S3Hook
 from airflow.contrib.operators.emr_create_job_flow_operator import (
     EmrCreateJobFlowOperator
 )
-from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from datetime import datetime
@@ -92,20 +91,22 @@ task=PythonOperator(
 )
 
 order_detail_script_upload_task = PythonOperator(
-    task_id= 'Cust_Script_To_S3',
+    task_id= 'Order_Details_Script_To_S3',
     python_callable= upload_to_s3,
     op_kwargs=dict(
         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/orderdetails_transformation.py", 
         key = "Scripts/orderdetails_transformation.py"
-    )
+    ),
+    dag=dag
 )
 order_script_upload_task = PythonOperator(
-    task_id= 'Cust_Script_To_S3',
+    task_id= 'Order_Script_To_S3',
     python_callable= upload_to_s3,
     op_kwargs=dict(
         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/order_tranformation.py", 
-        key = "Scripts/order_tranformation.py"
-    )
+        key = "Scripts/order_transformation.py"
+    ),
+    dag=dag
 )
 customer_script_upload_task = PythonOperator(
     task_id= 'Cust_Script_To_S3',
@@ -113,24 +114,27 @@ customer_script_upload_task = PythonOperator(
     op_kwargs=dict(
         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/customer_transformation.py", 
         key = "Scripts/customer_transformation.py"
-    )
+    ),
+    dag=dag
 )
 
 
 product_script_upload_task = PythonOperator(
-    task_id= 'Cust_Script_To_S3',
+    task_id= 'Product_Script_To_S3',
     python_callable= upload_to_s3,
     op_kwargs=dict(
         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/product_transformation.py", 
         key = "Scripts/product_transformation.py"
-    )
+    ),
+    dag=dag
 )
 
 create_emr_cluster = EmrCreateJobFlowOperator(
         task_id="Create_EMR_Cluster",
         job_flow_overrides=JOB_FLOW_OVERRIDES,
         aws_conn_id="aws_default",
-        emr_conn_id="emr_default"
+        emr_conn_id="emr_default",
+        dag=dag
     )
 
 is_emr_cluster_created=EmrJobFlowSensor(
@@ -140,7 +144,8 @@ is_emr_cluster_created=EmrJobFlowSensor(
     timeout=3600,
     poke_interval=5,
     mode='poke',
-    aws_conn_id="aws_default"
+    aws_conn_id="aws_default",
+    dag=dag
 )
 
 
@@ -154,6 +159,7 @@ order_details_silver_job = EmrAddStepsOperator(
             "SCRIPT_KEY": "Scripts/orderdetails_transformation.py",
             "BATCH_NAME": "Order Details Silver Batch",
         },
+        dag=dag
     )
 
 
@@ -167,6 +173,7 @@ order_silver_job = EmrAddStepsOperator(
             "SCRIPT_KEY": "Scripts/order_transformation.py",
             "BATCH_NAME": "Order Silver Batch"
         },
+        dag=dag
 )
 product_silver_job = EmrAddStepsOperator(
         task_id="Submitting_Spark_Job_Product",
@@ -177,7 +184,8 @@ product_silver_job = EmrAddStepsOperator(
             "BUCKET_NAME": s3_bucket,
             "SCRIPT_KEY": "Scripts/product_transformation.py",
             "BATCH_NAME": "Product Silver Batch",
-        }
+        },
+        dag=dag
     )
 customer_silver_job  = EmrAddStepsOperator(
     task_id="Submitting_Spark_Job_customer",
@@ -189,4 +197,5 @@ customer_silver_job  = EmrAddStepsOperator(
         "SCRIPT_KEY": "Scripts/customer_transformation.py",
         "BATCH_NAME":"Customer Silver Batch"
     },
+    dag=dag
 )
