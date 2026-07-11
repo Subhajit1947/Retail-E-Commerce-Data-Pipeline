@@ -148,9 +148,28 @@ order_silver_job = EmrAddStepsOperator(
         steps=SPARK_STEPS,
         params={
             "BUCKET_NAME": s3_bucket,
-            "SCRIPT_KEY": "Scripts/order_tranformation.py",
+            "SCRIPT_KEY": "Scripts/order_transformation.py",
             "BATCH_NAME": "Order Silver Batch"
         },
+product_silver_job = EmrAddStepsOperator(
+        task_id="Submitting_Spark_Job_Product",
+        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+        aws_conn_id="aws_default",
+        steps=SPARK_STEPS,
+        params={
+            "BUCKET_NAME": s3_bucket,
+            "SCRIPT_KEY": "Scripts/product_transformation.py",
+            "BATCH_NAME": "Product Silver Batch",
+        }
     )
-
-
+customer_silver_job  = EmrAddStepsOperator(
+    task_id="Submitting_Spark_Job_customer",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+    aws_conn_id="aws_default",
+    steps=SPARK_STEPS,
+    params={
+        "BUCKET_NAME": s3_bucket,
+        "SCRIPT_KEY": "Scripts/customer_transformation.py",
+        "BATCH_NAME":"Customer Silver Batch"
+    },
+)
