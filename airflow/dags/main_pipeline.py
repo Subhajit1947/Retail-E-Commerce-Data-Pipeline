@@ -9,7 +9,7 @@ from airflow.contrib.operators.emr_create_job_flow_operator import (
 )
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
-
+from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from datetime import datetime
 
 from include.utils.helper import run_daily_pipeline
@@ -70,6 +70,8 @@ SPARK_STEPS = [
         },
     },
 ]
+
+
 
 dag=DAG(
     dag_id="ecommerce_daily_pipeline",
@@ -140,6 +142,20 @@ is_emr_cluster_created=EmrJobFlowSensor(
     mode='poke',
     aws_conn_id="aws_default"
 )
+
+
+order_details_silver_job = EmrAddStepsOperator(
+        task_id="Submitting_Spark_Job_Order_Details",
+        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+        aws_conn_id="aws_default",
+        steps=SPARK_STEPS,
+        params={ # these params are used to fill the paramterized values in SPARK_STEPS json
+            "BUCKET_NAME": s3_bucket,
+            "SCRIPT_KEY": "Scripts/orderdetails_transformation.py",
+            "BATCH_NAME": "Order Details Silver Batch",
+        },
+    )
+
 
 order_silver_job = EmrAddStepsOperator(
         task_id="Submitting_Spark_Job_Order",
