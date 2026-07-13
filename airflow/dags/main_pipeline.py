@@ -1,6 +1,5 @@
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.hooks.s3_hook import S3Hook
 
@@ -9,6 +8,12 @@ from airflow.contrib.operators.emr_create_job_flow_operator import (
 )
 from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
+from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
+from airflow.contrib.operators.emr_terminate_job_flow_operator import (
+    EmrTerminateJobFlowOperator
+)
+
+
 from datetime import datetime
 
 from include.utils.helper import run_daily_pipeline
@@ -199,3 +204,41 @@ customer_silver_job  = EmrAddStepsOperator(
     },
     dag=dag
 )
+
+
+is_order_job_completed = EmrStepSensor(
+    task_id="Running_Spark_Order_Job",
+    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Order', key='return_value')[0] }}",
+    aws_conn_id="aws_default",
+    dag=dag
+)
+
+is_order_details_job_completed = EmrStepSensor(
+    task_id="Running_Spark_Order_Details_Job",
+    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Order_Details', key='return_value')[0] }}",
+    aws_conn_id="aws_default",
+    dag=dag
+)
+is_product_job_completed = EmrStepSensor(
+    task_id="Running_Spark_Product_Job",
+    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Product', key='return_value')[0] }}",
+    aws_conn_id="aws_default",
+    dag=dag
+)
+is_Customer_job_completed = EmrStepSensor(
+    task_id="Running_Spark_Customer_Job",
+    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_customer', key='return_value')[0] }}",
+    aws_conn_id="aws_default",
+    dag=dag
+)
+
+terminate_emr_cluster = EmrTerminateJobFlowOperator(
+        task_id="Terminate_EMR_Cluster",
+        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+        aws_conn_id="aws_default"
+    )
+
