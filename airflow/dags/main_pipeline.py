@@ -1,24 +1,30 @@
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.providers.standard.operators.empty import EmptyOperator
-from airflow.hooks.s3_hook import S3Hook
+# from airflow.providers.standard.operators.empty import EmptyOperator
+# from airflow.hooks.s3_hook import S3Hook
 
-from airflow.contrib.operators.emr_create_job_flow_operator import (
-    EmrCreateJobFlowOperator
-)
-from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
-from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
-from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-from airflow.contrib.operators.emr_terminate_job_flow_operator import (
-    EmrTerminateJobFlowOperator
-)
+# from airflow.contrib.operators.emr_create_job_flow_operator import (
+#     EmrCreateJobFlowOperator
+# )
+# from airflow.contrib.sensors.emr_job_flow_sensor import EmrJobFlowSensor
+# from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
+# from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
+# from airflow.contrib.operators.emr_terminate_job_flow_operator import (
+#     EmrTerminateJobFlowOperator
+# )
 
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.amazon.aws.operators.emr import (
+    EmrCreateJobFlowOperator,
+    EmrAddStepsOperator,
+    EmrTerminateJobFlowOperator,
+)
+from airflow.providers.amazon.aws.sensors.emr import EmrJobFlowSensor, EmrStepSensor
 
 from datetime import datetime
 
 from include.utils.helper import run_daily_pipeline
 import os 
-import pandas as pd
 
 s3_bucket=os.environ["S3_BUCKET"]
 aws_key=os.environ["AWS_ACCESS_KEY"]
@@ -84,16 +90,16 @@ dag=DAG(
     catchup=False
 )
 
-task=PythonOperator(
-    task_id="daily_data_load_dag",
-    python_callable=run_daily_pipeline,
-    op_kwargs={
-        "s3_bucket":s3_bucket,
-        "aws_key":aws_key,
-        "aws_secret":aws_secret
-    },
-    dag=dag
-)
+# generate_data_and_upload_to_s3=PythonOperator(
+#     task_id="daily_data_load_dag",
+#     python_callable=run_daily_pipeline,
+#     op_kwargs={
+#         "s3_bucket":s3_bucket,
+#         "aws_key":aws_key,
+#         "aws_secret":aws_secret
+#     },
+#     dag=dag
+# )
 
 order_detail_script_upload_task = PythonOperator(
     task_id= 'Order_Details_Script_To_S3',
@@ -144,7 +150,7 @@ create_emr_cluster = EmrCreateJobFlowOperator(
 
 is_emr_cluster_created=EmrJobFlowSensor(
     task_id="Is_EMR_Created",
-    job_flow_id="{{task_instance.xcom_pull(task_id='Create_EMR_Cluster',key='return_value)}}",
+    job_flow_id="{{task_instance.xcom_pull(task_ids='Create_EMR_Cluster',key='return_value')}}",
     target_states={"WAITING"},
     timeout=3600,
     poke_interval=5,
@@ -239,6 +245,27 @@ is_Customer_job_completed = EmrStepSensor(
 terminate_emr_cluster = EmrTerminateJobFlowOperator(
         task_id="Terminate_EMR_Cluster",
         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
-        aws_conn_id="aws_default"
+        aws_conn_id="aws_default",
+        trigger_rule="all_done"
     )
+
+
+# generate_data_and_upload_to_s3>>
+[
+    order_detail_script_upload_task,
+    order_script_upload_task,
+    customer_script_upload_task,
+    product_script_upload_task
+]>>create_emr_cluster>>is_emr_cluster_created>>[
+    order_details_silver_job,
+    order_silver_job,
+    product_silver_job,
+    customer_silver_job
+]
+
+order_details_silver_job >> is_order_details_job_completed >> terminate_emr_cluster
+order_silver_job >> is_order_job_completed >> terminate_emr_cluster
+product_silver_job >> is_product_job_completed >> terminate_emr_cluster
+customer_silver_job >> is_Customer_job_completed >> terminate_emr_cluster
+
 
