@@ -3,3 +3,8 @@ logs
 output_files
 plugins
 test_dag.py
+__pycache__
+airflow\dags\__pycache__
+**/__pycache__/
+*.pyc
+*.pyo

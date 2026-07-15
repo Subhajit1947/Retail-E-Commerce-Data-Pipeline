@@ -38,6 +38,7 @@ def upload_to_s3(filename, key):
 
 JOB_FLOW_OVERRIDES = {
     "Name": "Retail Batch",
+    "LogUri": f"s3://{s3_bucket}/emr-logs/",
     "ReleaseLabel": "emr-6.4.0",
     "Applications": [{"Name": "Spark"}],
     'Instances': {
@@ -101,50 +102,50 @@ dag=DAG(
 #     dag=dag
 # )
 
-order_detail_script_upload_task = PythonOperator(
-    task_id= 'Order_Details_Script_To_S3',
-    python_callable= upload_to_s3,
-    op_kwargs=dict(
-        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/orderdetails_transformation.py", 
-        key = "Scripts/orderdetails_transformation.py"
-    ),
-    dag=dag
-)
-order_script_upload_task = PythonOperator(
-    task_id= 'Order_Script_To_S3',
-    python_callable= upload_to_s3,
-    op_kwargs=dict(
-        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/order_tranformation.py", 
-        key = "Scripts/order_transformation.py"
-    ),
-    dag=dag
-)
-customer_script_upload_task = PythonOperator(
-    task_id= 'Cust_Script_To_S3',
-    python_callable= upload_to_s3,
-    op_kwargs=dict(
-        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/customer_transformation.py", 
-        key = "Scripts/customer_transformation.py"
-    ),
-    dag=dag
-)
+# order_detail_script_upload_task = PythonOperator(
+#     task_id= 'Order_Details_Script_To_S3',
+#     python_callable= upload_to_s3,
+#     op_kwargs=dict(
+#         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/orderdetails_transformation.py", 
+#         key = "Scripts/orderdetails_transformation.py"
+#     ),
+#     dag=dag
+# )
+# order_script_upload_task = PythonOperator(
+#     task_id= 'Order_Script_To_S3',
+#     python_callable= upload_to_s3,
+#     op_kwargs=dict(
+#         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/order_tranformation.py", 
+#         key = "Scripts/order_transformation.py"
+#     ),
+#     dag=dag
+# )
+# customer_script_upload_task = PythonOperator(
+#     task_id= 'Cust_Script_To_S3',
+#     python_callable= upload_to_s3,
+#     op_kwargs=dict(
+#         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/customer_transformation.py", 
+#         key = "Scripts/customer_transformation.py"
+#     ),
+#     dag=dag
+# )
 
 
-product_script_upload_task = PythonOperator(
-    task_id= 'Product_Script_To_S3',
-    python_callable= upload_to_s3,
-    op_kwargs=dict(
-        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/product_transformation.py", 
-        key = "Scripts/product_transformation.py"
-    ),
-    dag=dag
-)
+# product_script_upload_task = PythonOperator(
+#     task_id= 'Product_Script_To_S3',
+#     python_callable= upload_to_s3,
+#     op_kwargs=dict(
+#         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/product_transformation.py", 
+#         key = "Scripts/product_transformation.py"
+#     ),
+#     dag=dag
+# )
 
 create_emr_cluster = EmrCreateJobFlowOperator(
         task_id="Create_EMR_Cluster",
         job_flow_overrides=JOB_FLOW_OVERRIDES,
         aws_conn_id="aws_default",
-        emr_conn_id="emr_default",
+        # emr_conn_id="emr_default",
         dag=dag
     )
 
@@ -174,51 +175,51 @@ order_details_silver_job = EmrAddStepsOperator(
     )
 
 
-order_silver_job = EmrAddStepsOperator(
-        task_id="Submitting_Spark_Job_Order",
-        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
-        aws_conn_id="aws_default",
-        steps=SPARK_STEPS,
-        params={
-            "BUCKET_NAME": s3_bucket,
-            "SCRIPT_KEY": "Scripts/order_transformation.py",
-            "BATCH_NAME": "Order Silver Batch"
-        },
-        dag=dag
-)
-product_silver_job = EmrAddStepsOperator(
-        task_id="Submitting_Spark_Job_Product",
-        job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
-        aws_conn_id="aws_default",
-        steps=SPARK_STEPS,
-        params={
-            "BUCKET_NAME": s3_bucket,
-            "SCRIPT_KEY": "Scripts/product_transformation.py",
-            "BATCH_NAME": "Product Silver Batch",
-        },
-        dag=dag
-    )
-customer_silver_job  = EmrAddStepsOperator(
-    task_id="Submitting_Spark_Job_customer",
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
-    aws_conn_id="aws_default",
-    steps=SPARK_STEPS,
-    params={
-        "BUCKET_NAME": s3_bucket,
-        "SCRIPT_KEY": "Scripts/customer_transformation.py",
-        "BATCH_NAME":"Customer Silver Batch"
-    },
-    dag=dag
-)
+# order_silver_job = EmrAddStepsOperator(
+#         task_id="Submitting_Spark_Job_Order",
+#         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+#         aws_conn_id="aws_default",
+#         steps=SPARK_STEPS,
+#         params={
+#             "BUCKET_NAME": s3_bucket,
+#             "SCRIPT_KEY": "Scripts/order_transformation.py",
+#             "BATCH_NAME": "Order Silver Batch"
+#         },
+#         dag=dag
+# )
+# product_silver_job = EmrAddStepsOperator(
+#         task_id="Submitting_Spark_Job_Product",
+#         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+#         aws_conn_id="aws_default",
+#         steps=SPARK_STEPS,
+#         params={
+#             "BUCKET_NAME": s3_bucket,
+#             "SCRIPT_KEY": "Scripts/product_transformation.py",
+#             "BATCH_NAME": "Product Silver Batch",
+#         },
+#         dag=dag
+#     )
+# customer_silver_job  = EmrAddStepsOperator(
+#     task_id="Submitting_Spark_Job_customer",
+#     job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+#     aws_conn_id="aws_default",
+#     steps=SPARK_STEPS,
+#     params={
+#         "BUCKET_NAME": s3_bucket,
+#         "SCRIPT_KEY": "Scripts/customer_transformation.py",
+#         "BATCH_NAME":"Customer Silver Batch"
+#     },
+#     dag=dag
+# )
 
 
-is_order_job_completed = EmrStepSensor(
-    task_id="Running_Spark_Order_Job",
-    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
-    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Order', key='return_value')[0] }}",
-    aws_conn_id="aws_default",
-    dag=dag
-)
+# is_order_job_completed = EmrStepSensor(
+#     task_id="Running_Spark_Order_Job",
+#     job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+#     step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Order', key='return_value')[0] }}",
+#     aws_conn_id="aws_default",
+#     dag=dag
+# )
 
 is_order_details_job_completed = EmrStepSensor(
     task_id="Running_Spark_Order_Details_Job",
@@ -227,20 +228,20 @@ is_order_details_job_completed = EmrStepSensor(
     aws_conn_id="aws_default",
     dag=dag
 )
-is_product_job_completed = EmrStepSensor(
-    task_id="Running_Spark_Product_Job",
-    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
-    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Product', key='return_value')[0] }}",
-    aws_conn_id="aws_default",
-    dag=dag
-)
-is_Customer_job_completed = EmrStepSensor(
-    task_id="Running_Spark_Customer_Job",
-    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
-    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_customer', key='return_value')[0] }}",
-    aws_conn_id="aws_default",
-    dag=dag
-)
+# is_product_job_completed = EmrStepSensor(
+#     task_id="Running_Spark_Product_Job",
+#     job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+#     step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Product', key='return_value')[0] }}",
+#     aws_conn_id="aws_default",
+#     dag=dag
+# )
+# is_Customer_job_completed = EmrStepSensor(
+#     task_id="Running_Spark_Customer_Job",
+#     job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+#     step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_customer', key='return_value')[0] }}",
+#     aws_conn_id="aws_default",
+#     dag=dag
+# )
 
 terminate_emr_cluster = EmrTerminateJobFlowOperator(
         task_id="Terminate_EMR_Cluster",
@@ -251,21 +252,24 @@ terminate_emr_cluster = EmrTerminateJobFlowOperator(
 
 
 # generate_data_and_upload_to_s3>>
-[
-    order_detail_script_upload_task,
-    order_script_upload_task,
-    customer_script_upload_task,
-    product_script_upload_task
-]>>create_emr_cluster>>is_emr_cluster_created>>[
-    order_details_silver_job,
-    order_silver_job,
-    product_silver_job,
-    customer_silver_job
-]
-
+# [
+#     order_detail_script_upload_task,
+#     order_script_upload_task,
+#     customer_script_upload_task,
+#     product_script_upload_task
+# ]
+# order_detail_script_upload_task>>order_script_upload_task>>customer_script_upload_task>>product_script_upload_task>>
+# create_emr_cluster>>is_emr_cluster_created>>[
+#     order_details_silver_job,
+#     order_silver_job,
+#     product_silver_job,
+#     customer_silver_job
+# ]
+create_emr_cluster>>is_emr_cluster_created>>order_details_silver_job
+# >>order_silver_job>>product_silver_job>>customer_silver_job
 order_details_silver_job >> is_order_details_job_completed >> terminate_emr_cluster
-order_silver_job >> is_order_job_completed >> terminate_emr_cluster
-product_silver_job >> is_product_job_completed >> terminate_emr_cluster
-customer_silver_job >> is_Customer_job_completed >> terminate_emr_cluster
+# order_silver_job >> is_order_job_completed >> terminate_emr_cluster
+# product_silver_job >> is_product_job_completed >> terminate_emr_cluster
+# customer_silver_job >> is_Customer_job_completed >> terminate_emr_cluster
 
 
