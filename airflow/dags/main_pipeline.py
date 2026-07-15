@@ -102,15 +102,15 @@ dag=DAG(
 #     dag=dag
 # )
 
-# order_detail_script_upload_task = PythonOperator(
-#     task_id= 'Order_Details_Script_To_S3',
-#     python_callable= upload_to_s3,
-#     op_kwargs=dict(
-#         filename = AIRFLOW_HOME+"/dags/include/silver_scripts/orderdetails_transformation.py", 
-#         key = "Scripts/orderdetails_transformation.py"
-#     ),
-#     dag=dag
-# )
+order_detail_script_upload_task = PythonOperator(
+    task_id= 'Order_Details_Script_To_S3',
+    python_callable= upload_to_s3,
+    op_kwargs=dict(
+        filename = AIRFLOW_HOME+"/dags/include/silver_scripts/orderdetails_transformation.py", 
+        key = "Scripts/orderdetails_transformation.py"
+    ),
+    dag=dag
+)
 # order_script_upload_task = PythonOperator(
 #     task_id= 'Order_Script_To_S3',
 #     python_callable= upload_to_s3,
