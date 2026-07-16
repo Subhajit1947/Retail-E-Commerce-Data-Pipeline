@@ -76,7 +76,9 @@ SPARK_STEPS = [
                 "spark-submit",
                 "s3://{{ params.BUCKET_NAME }}/{{ params.SCRIPT_KEY }}",
                 "--bucket",
-                "{{ params.BUCKET_NAME }}"
+                "{{ params.BUCKET_NAME }}",
+                "--process-date",
+                "{{params.PROCESS_DATE}}"
             ],
         },
     },
@@ -91,16 +93,16 @@ dag=DAG(
     catchup=False
 )
 
-# generate_data_and_upload_to_s3=PythonOperator(
-#     task_id="daily_data_load_dag",
-#     python_callable=run_daily_pipeline,
-#     op_kwargs={
-#         "s3_bucket":s3_bucket,
-#         "aws_key":aws_key,
-#         "aws_secret":aws_secret
-#     },
-#     dag=dag
-# )
+generate_data_and_upload_to_s3=PythonOperator(
+    task_id="daily_data_load_dag",
+    python_callable=run_daily_pipeline,
+    op_kwargs={
+        "s3_bucket":s3_bucket,
+        "aws_key":aws_key,
+        "aws_secret":aws_secret
+    },
+    dag=dag
+)
 
 order_detail_script_upload_task = PythonOperator(
     task_id= 'Order_Details_Script_To_S3',
@@ -170,6 +172,7 @@ order_details_silver_job = EmrAddStepsOperator(
             "BUCKET_NAME": s3_bucket,
             "SCRIPT_KEY": "Scripts/orderdetails_transformation.py",
             "BATCH_NAME": "Order Details Silver Batch",
+            "PROCESS_DATE": "{{ ds }}"
         },
         dag=dag
     )
@@ -265,7 +268,7 @@ terminate_emr_cluster = EmrTerminateJobFlowOperator(
 #     product_silver_job,
 #     customer_silver_job
 # ]
-create_emr_cluster>>is_emr_cluster_created>>order_details_silver_job
+generate_data_and_upload_to_s3>>order_detail_script_upload_task>>create_emr_cluster>>is_emr_cluster_created>>order_details_silver_job
 # >>order_silver_job>>product_silver_job>>customer_silver_job
 order_details_silver_job >> is_order_details_job_completed >> terminate_emr_cluster
 # order_silver_job >> is_order_job_completed >> terminate_emr_cluster
