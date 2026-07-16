@@ -9,6 +9,7 @@ def get_arg(flag, default=None):
     return default
 
 bucket = get_arg("--bucket")
+process_date=get_arg("--process-date")
 if not bucket:
     raise ValueError("Missing required --bucket argument")
 
@@ -19,7 +20,7 @@ spark=SparkSession.builder \
 order_details_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
-                        .load(f"s3://{bucket}/Bronze/order_details/")
+                        .load(f"s3://{bucket}/Bronze/order_details/date={process_date}/")
 
 
 if order_details_df.count()>0:
