@@ -78,7 +78,7 @@ SPARK_STEPS = [
                 "--bucket",
                 "{{ params.BUCKET_NAME }}",
                 "--process-date",
-                "{{params.PROCESS_DATE}}"
+                "{{ds}}"
             ],
         },
     },
@@ -171,8 +171,7 @@ order_details_silver_job = EmrAddStepsOperator(
         params={ # these params are used to fill the paramterized values in SPARK_STEPS json
             "BUCKET_NAME": s3_bucket,
             "SCRIPT_KEY": "Scripts/orderdetails_transformation.py",
-            "BATCH_NAME": "Order Details Silver Batch",
-            "PROCESS_DATE": "{{ ds }}"
+            "BATCH_NAME": "Order Details Silver Batch"
         },
         dag=dag
     )
