@@ -1,7 +1,14 @@
 from pyspark.sql.functions import current_timestamp,current_date,lit,concat_ws,col,sha2,round
 from pyspark.sql import SparkSession
 from pyspark.sql.types import TimestampType
-import os
+import sys
+
+def get_arg(flag, default=None):
+    if flag in sys.argv:
+        return sys.argv[sys.argv.index(flag) + 1]
+    return default
+
+bucket = get_arg("--bucket")
 
 spark=SparkSession.builder \
     .appName("Retail Customer Data") \
@@ -10,7 +17,7 @@ spark=SparkSession.builder \
 product_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
-                        .load(f"s3://{os.environ['S3_BUCKET']}/Bronze/products/")
+                        .load(f"s3://{bucket}/Bronze/products/")
 
 if product_df.count()>0:
     renamed_products=product_df.withColumnRenamed("productId","product_id")\
@@ -43,7 +50,7 @@ if product_df.count()>0:
     product_final_df.write \
         .partitionBy("ingestion_date") \
         .mode("overwrite") \
-        .parquet(f"s3://{os.environ['S3_BUCKET']}/Silver/products/")
+        .parquet(f"s3://{bucket}/Silver/products/")
 
 
 else:
