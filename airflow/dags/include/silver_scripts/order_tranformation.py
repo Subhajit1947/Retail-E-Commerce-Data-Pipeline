@@ -1,7 +1,17 @@
 from pyspark.sql.functions import current_date,col,to_date,year,month
 from pyspark.sql import SparkSession
 from pyspark.sql.types import DateType
-import os
+import sys
+
+def get_arg(flag, default=None):
+    if flag in sys.argv:
+        return sys.argv[sys.argv.index(flag) + 1]
+    return default
+
+bucket = get_arg("--bucket")
+process_date=get_arg("--process-date")
+if not bucket:
+    raise ValueError("Missing required --bucket argument")
 
 spark=SparkSession.builder \
     .appName("Retail Customer Data") \
@@ -10,7 +20,7 @@ spark=SparkSession.builder \
 order_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
-                        .load(f"s3://{os.environ['S3_BUCKET']}/Bronze/orders/")
+                        .load(f"s3://{bucket}/Bronze/orders/date={process_date}")
 
 
 if order_df.count()>0:
@@ -29,7 +39,7 @@ if order_df.count()>0:
     orders_final_df.write \
         .partitionBy("order_year")\
         .mode("overwrite") \
-        .parquet(f"s3://{os.environ['S3_BUCKET']}/Silver/orders/")
+        .parquet(f"s3://{bucket}/Silver/orders/")
 
 
 
