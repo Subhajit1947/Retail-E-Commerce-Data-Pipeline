@@ -39,7 +39,7 @@ class OrderGenerator(BaseGenerator):
         
         Formula: customer_count * base_rate * day_multipliers
         """
-        base_rate = 0.05  # 5% of customers order daily
+        base_rate = 0.003  # 5% of customers order daily
         count = int(customer_count * base_rate)
         
         # Weekend multiplier
