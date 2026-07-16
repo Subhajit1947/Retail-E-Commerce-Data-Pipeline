@@ -1,7 +1,14 @@
 from pyspark.sql.functions import current_timestamp,current_date,lit,concat_ws,col,sha2,split,get
 from pyspark.sql import SparkSession
 from pyspark.sql.types import TimestampType
-import os
+import sys
+
+def get_arg(flag, default=None):
+    if flag in sys.argv:
+        return sys.argv[sys.argv.index(flag) + 1]
+    return default
+
+bucket = get_arg("--bucket")
 
 spark=SparkSession.builder \
     .appName("Retail Customer Data") \
@@ -10,7 +17,7 @@ spark=SparkSession.builder \
 customer_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
-                        .load(f"s3://{os.environ['S3_BUCKET']}/Bronze/customers/")
+                        .load(f"s3://{bucket}/Bronze/customers/")
 if customer_df.count()>0:
     renamed_customer=customer_df.withColumnRenamed("customerId","customer_id")\
         .withColumnRenamed("op","cdc_operation")\
@@ -43,7 +50,7 @@ if customer_df.count()>0:
     customer_final_df.write \
         .partitionBy("ingestion_date") \
         .mode("overwrite") \
-        .parquet(f"s3://{os.environ['S3_BUCKET']}/Silver/customers/")
+        .parquet(f"s3://{bucket}/Silver/customers/")
 
 else:
     print("No new records found in the source data. Skipping further processing.")
