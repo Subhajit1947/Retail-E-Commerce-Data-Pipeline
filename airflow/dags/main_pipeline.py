@@ -253,32 +253,6 @@ terminate_emr_cluster = EmrTerminateJobFlowOperator(
     )
 
 
-# generate_data_and_upload_to_s3>>
-# [
-#     order_detail_script_upload_task,
-#     order_script_upload_task,
-#     customer_script_upload_task,
-#     product_script_upload_task
-# ]
-# order_detail_script_upload_task>>order_script_upload_task>>customer_script_upload_task>>product_script_upload_task>>
-# create_emr_cluster>>is_emr_cluster_created>>[
-#     order_details_silver_job,
-#     order_silver_job,
-#     product_silver_job,
-#     customer_silver_job
-# ]
-# generate_data_and_upload_to_s3>>order_detail_script_upload_task>>create_emr_cluster>>is_emr_cluster_created>>order_details_silver_job
-# >>order_silver_job>>product_silver_job>>customer_silver_job
-# order_details_silver_job >> is_order_details_job_completed >> terminate_emr_cluster
-# order_silver_job >> is_order_job_completed >> terminate_emr_cluster
-# product_silver_job >> is_product_job_completed >> terminate_emr_cluster
-# customer_silver_job >> is_Customer_job_completed >> terminate_emr_cluster
-
-
-
-
-
-
 generate_data_and_upload_to_s3>>[order_detail_script_upload_task,order_script_upload_task,customer_script_upload_task,product_script_upload_task]>>create_emr_cluster
 create_emr_cluster>>is_emr_cluster_created>>[order_details_silver_job,order_silver_job,product_silver_job,customer_silver_job]
 order_silver_job >> is_order_job_completed
