@@ -25,7 +25,7 @@ order_df=spark.read.format("csv")\
 
 if order_df.count()>0:
     orders_with_date=order_df.withColumn("orderDate",to_date(col("orderDate").cast(DateType())))
-    renamed_orders = orders_with_date.withColumnRenamed("orderId","order_id ")\
+    renamed_orders = orders_with_date.withColumnRenamed("orderId","order_id")\
                         .withColumnRenamed("orderCustomerId","order_customer_id")\
                         .withColumnRenamed("orderDate","order_date")\
                         .withColumnRenamed("paymentMethod","payment_method")\
