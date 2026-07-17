@@ -1,4 +1,4 @@
-from pyspark.sql.functions import current_timestamp,current_date,lit,concat_ws,col,sha2,split,get
+from pyspark.sql.functions import current_timestamp,current_date,lit,concat_ws,col,sha2,split,element_at
 from pyspark.sql import SparkSession
 from pyspark.sql.types import TimestampType
 import sys
@@ -43,8 +43,8 @@ if customer_df.count()>0:
                         .withColumn("record_end_ts",record_end_ts)\
                         .withColumn("ingestion_date", current_date())\
                         .withColumn("active_flag",active_flag)\
-                        .withColumn("cust_first_name", get(split(col("cust_name"), " "), 0))\
-                        .withColumn("cust_last_name", get(split(col("cust_name"), " "), 1))\
+                        .withColumn("cust_first_name", element_at(split(col("cust_name"), " "), 1))\
+                        .withColumn("cust_last_name", element_at(split(col("cust_name"), " "), 2))\
                         .drop("cust_name")
     
     customer_final_df.write \
