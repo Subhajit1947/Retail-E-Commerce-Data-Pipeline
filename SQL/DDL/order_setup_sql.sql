@@ -15,3 +15,6 @@ CREATE TABLE sales.fact_orders (
 CREATE INDEX idx_fact_orders_order_date
 ON sales.fact_orders (order_date);
 
+CREATE INDEX idx_fact_orders_customer_id
+ON sales_uk.fact_orders (order_customer_id);
+
