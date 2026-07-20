@@ -23,7 +23,7 @@ DAILY_CONFIG = {
         'growth_rate': 0.02,         # 2% daily growth (viral effect)
         'weekend_multiplier': 1.3,   # More signups on weekends
         'campaign_multiplier': 2.0,    # During marketing campaigns
-        'max_daily': 200,              # Cap at 200/day
+        'max_daily': 50,              # Cap at 200/day
     },
     'product_updates': {
         'new_products_weekly': 3,    # New products added per week
