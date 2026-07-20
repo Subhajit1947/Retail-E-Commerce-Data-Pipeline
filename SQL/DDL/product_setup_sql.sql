@@ -1,5 +1,6 @@
 -- Create Product Dimension Table
 CREATE TABLE sales.dim_product (
+    product_sk      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     cdc_operation       VARCHAR(50),
     product_id          VARCHAR(64) NOT NULL,
     product_name        VARCHAR(64),
@@ -10,9 +11,7 @@ CREATE TABLE sales.dim_product (
     hash_value          VARCHAR(64),
     record_start_ts     TIMESTAMP WITHOUT TIME ZONE,
     record_end_ts       TIMESTAMP WITHOUT TIME ZONE,
-    active_flag         INTEGER,
-    
-    PRIMARY KEY (product_id)
+    active_flag         INTEGER
 );
 
 TRUNCATE TABLE sales.stage_dim_product;
