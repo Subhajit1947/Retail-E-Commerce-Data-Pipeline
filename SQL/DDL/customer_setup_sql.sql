@@ -1,6 +1,7 @@
 
 -----------CREATE CUSTOMER DIMENSION TABLE--------------------------
 CREATE TABLE sales.dim_customer (
+    customer_sk      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     cdc_operation VARCHAR(50),
     customer_id VARCHAR(64) NOT NULL,
     cust_email VARCHAR(64),
@@ -13,12 +14,10 @@ CREATE TABLE sales.dim_customer (
     record_end_ts TIMESTAMP WITHOUT TIME ZONE,
     active_flag INTEGER,
     cust_first_name VARCHAR(64),
-    cust_last_name VARCHAR(64),
-
-    PRIMARY KEY (customer_id)
+    cust_last_name VARCHAR(64)
 );
 
-CREATE UNLOGGED TABLE sales.stage_dim_customer (
+CREATE TABLE sales.stage_dim_customer (
     cdc_operation     VARCHAR(50),
     customer_id       VARCHAR(64) NOT NULL,
     cust_email        VARCHAR(64),
@@ -31,7 +30,8 @@ CREATE UNLOGGED TABLE sales.stage_dim_customer (
     record_end_ts     TIMESTAMP,
     active_flag       INTEGER,
     cust_first_name   VARCHAR(64),
-    cust_last_name    VARCHAR(64)
+    cust_last_name    VARCHAR(64),
+    PRIMARY KEY (customer_id)
 );
  
 CREATE INDEX idx_stage_dim_customer_customer_id
