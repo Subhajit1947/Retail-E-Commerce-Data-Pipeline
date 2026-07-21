@@ -18,7 +18,7 @@ FROM (
 WHERE dc.customer_id=b.customer_id 
     AND dc.active_flag=1
     AND dc.record_end_ts>b.record_start_ts
-    AND b.cdc_operation IN ('U','D')
+    AND b.cdc_operation IN ('U','D');
 
 --insert new/changed record
 INSERT INTO sales.dim_customer
