@@ -9,7 +9,7 @@ def get_arg(flag, default=None):
     return default
 
 bucket = get_arg("--bucket")
-
+process_date=get_arg("--process-date")
 spark=SparkSession.builder \
     .appName("Retail Customer Data") \
     .getOrCreate()
@@ -17,7 +17,7 @@ spark=SparkSession.builder \
 customer_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
-                        .load(f"s3://{bucket}/Bronze/customers/")
+                        .load(f"s3://{bucket}/Bronze/customers/date={process_date}")
 if customer_df.count()>0:
     renamed_customer=customer_df.withColumnRenamed("customerId","customer_id")\
         .withColumnRenamed("op","cdc_operation")\
