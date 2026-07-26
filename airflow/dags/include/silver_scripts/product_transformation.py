@@ -18,6 +18,9 @@ try:
     product_df=spark.read.format("csv")\
                             .option("inferSchema","true")\
                             .option("header","true")\
+                            .option("multiLine", "true")\
+                            .option("quote", '"')\
+                            .option("escape", '"')\
                             .load(f"s3://{bucket}/Bronze/products/date={process_date}")
 
     if product_df.count()>0:
