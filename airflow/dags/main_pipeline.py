@@ -1,5 +1,6 @@
 from airflow.sdk import DAG
 from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 # from airflow.providers.standard.operators.empty import EmptyOperator
 # from airflow.hooks.s3_hook import S3Hook
 
@@ -26,9 +27,15 @@ from datetime import datetime
 from include.utils.helper import run_daily_pipeline
 import os 
 
+
+
 s3_bucket=os.environ["S3_BUCKET"]
 aws_key=os.environ["AWS_ACCESS_KEY"]
 aws_secret=os.environ["AWS_SECRET_KEY"]
+EC2_IP=os.environ["EC2_IP"]
+DATABASE=os.environ["DATABASE"]
+DB_USERNAME=os.environ["DB_USERNAME"]
+DB_PASSWORD=os.environ["DB_PASSWORD"]
 AIRFLOW_HOME = os.environ.get('AIRFLOW_HOME','/opt/airflow')
 
 def upload_to_s3(filename, key):
@@ -83,7 +90,33 @@ SPARK_STEPS = [
         },
     },
 ]
-
+GOLD_SPARK_STEPS=[
+    {
+        "Name": "{{params.BATCH_NAME}}",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "spark-submit",
+                "--jars",
+                "s3://{{ params.BUCKET_NAME }}/jars/postgresql-42.7.3.jar",
+                "s3://{{ params.BUCKET_NAME }}/{{ params.SCRIPT_KEY }}",
+                "--bucket",
+                "{{ params.BUCKET_NAME }}",
+                "--process-date",
+                "{{ds}}",
+                "--ec2-ip",
+                "{{params.EC2_IP}}",
+                "--database",
+                "{{params.DATABASE}}",
+                "--db-username",
+                "{{params.DB_USERNAME}}",
+                "--db-password",
+                "{{params.DB_PASSWORD}}"
+            ],
+        },
+    },
+]
 
 
 dag=DAG(
@@ -245,18 +278,61 @@ is_Customer_job_completed = EmrStepSensor(
     dag=dag
 )
 
+
+
+gold_script_upload_task = PythonOperator(
+    task_id= 'Gold_Script_To_S3',
+    python_callable= upload_to_s3,
+    op_kwargs=dict(            
+        filename = AIRFLOW_HOME+"/dags/include/gold_scripts/gold_script.py", 
+        key = "Scripts/gold/gold_script.py"
+    ),
+    dag=dag
+)
+
+gold_job  = EmrAddStepsOperator(
+    task_id="Submitting_Spark_Job_Gold",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
+    aws_conn_id="aws_default",
+    steps=GOLD_SPARK_STEPS,
+    params={
+        "BUCKET_NAME": s3_bucket,
+        "SCRIPT_KEY": "Scripts/gold/gold_script.py",
+        "BATCH_NAME":"Customer Gold Batch",
+        "EC2_IP":EC2_IP,
+        "DATABASE":DATABASE,
+        "DB_USERNAME":DB_USERNAME,
+        "DB_PASSWORD":DB_PASSWORD
+    },
+    dag=dag
+)
+is_gold_job_completed = EmrStepSensor(
+    task_id="Running_Spark_Gold_Job",
+    job_flow_id="{{ task_instance.xcom_pull('Create_EMR_Cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='Submitting_Spark_Job_Gold', key='return_value')[0] }}",
+    aws_conn_id="aws_default",
+    dag=dag
+)
+
 terminate_emr_cluster = EmrTerminateJobFlowOperator(
         task_id="Terminate_EMR_Cluster",
         job_flow_id="{{ task_instance.xcom_pull(task_ids='Create_EMR_Cluster', key='return_value') }}",
         aws_conn_id="aws_default",
         trigger_rule="all_done"
-    )
+)
 
-
+merge_customer = SQLExecuteQueryOperator(
+    task_id="merge_customer",
+    conn_id="postgres_production",
+    sql="CALL sales.sp_merge_dim_customer();",
+    dag=dag
+)
 generate_data_and_upload_to_s3>>[order_detail_script_upload_task,order_script_upload_task,customer_script_upload_task,product_script_upload_task]>>create_emr_cluster
 create_emr_cluster>>is_emr_cluster_created>>[order_details_silver_job,order_silver_job,product_silver_job,customer_silver_job]
 order_silver_job >> is_order_job_completed
 order_details_silver_job >> is_order_details_job_completed
 product_silver_job >> is_product_job_completed
 customer_silver_job >> is_Customer_job_completed
-[is_order_job_completed, is_order_details_job_completed, is_product_job_completed, is_Customer_job_completed] >> terminate_emr_cluster
+[is_order_job_completed, is_order_details_job_completed, is_product_job_completed, is_Customer_job_completed]>>gold_script_upload_task
+gold_script_upload_task>>gold_job>>is_gold_job_completed>> terminate_emr_cluster>>merge_customer
+

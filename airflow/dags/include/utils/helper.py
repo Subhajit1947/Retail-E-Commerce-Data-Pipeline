@@ -214,15 +214,15 @@ def run_daily_pipeline(s3_bucket: str, aws_key: str = None, aws_secret: str = No
     print("\\n📋 Step 5: Checking for Price Updates...")
     
     price_updates = pd.DataFrame()
-    if day_number % 7 == 3:  # Mid-week price update
-        # In production: read existing products from DWH
-        price_updates = prod_gen.generate_price_updates(
-            product_df_s3, target_date, update_rate=0.05
-        )
-        if not price_updates.empty:
-            uploader.upload_csv(price_updates, 'products', date_str, 'products_price_updates.csv')
-    else:
-        print("   (Not a price update day)")
+    # if day_number % 7 == 3:  # Mid-week price update
+    #     # In production: read existing products from DWH
+    #     price_updates = prod_gen.generate_price_updates(
+    #         product_df_s3, target_date, update_rate=0.05
+    #     )
+    #     if not price_updates.empty:
+    #         uploader.upload_csv(price_updates, 'products', date_str, 'products_price_updates.csv')
+    # else:
+    #     print("   (Not a price update day)")
     
     # ==========================================
     # 6. GENERATE DAILY ORDERS
