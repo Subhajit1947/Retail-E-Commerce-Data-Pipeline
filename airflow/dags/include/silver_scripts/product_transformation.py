@@ -50,7 +50,21 @@ try:
                             .withColumn("ingestion_date",current_date())\
                             .withColumn("active_flag",active_flag)\
                             .withColumn("product_price",round(col("product_price"),2))
-
+        product_final_df=product_final_df.select(
+            "cdc_operation",
+            "product_id",
+            "product_name",
+            "brand_name",
+            "product_description",
+            "product_price",
+            "product_category",
+            "hash_value",
+            "record_start_ts",
+            "record_end_ts",
+            "active_flag",
+            "ingestion_date"
+        )
+    
         product_final_df.write \
             .partitionBy("ingestion_date") \
             .mode("overwrite") \
