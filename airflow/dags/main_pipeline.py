@@ -327,6 +327,14 @@ merge_customer = SQLExecuteQueryOperator(
     sql="CALL sales.sp_merge_dim_customer();",
     dag=dag
 )
+
+merge_product=SQLExecuteQueryOperator(
+    task_id="merge_product",
+    conn_id="postgres_production",
+    sql="CALL sales.sp_merge_dim_product();",
+    dag=dag
+)
+
 generate_data_and_upload_to_s3>>[order_detail_script_upload_task,order_script_upload_task,customer_script_upload_task,product_script_upload_task]>>create_emr_cluster
 create_emr_cluster>>is_emr_cluster_created>>[order_details_silver_job,order_silver_job,product_silver_job,customer_silver_job]
 order_silver_job >> is_order_job_completed
@@ -334,5 +342,8 @@ order_details_silver_job >> is_order_details_job_completed
 product_silver_job >> is_product_job_completed
 customer_silver_job >> is_Customer_job_completed
 [is_order_job_completed, is_order_details_job_completed, is_product_job_completed, is_Customer_job_completed]>>gold_script_upload_task
-gold_script_upload_task>>gold_job>>is_gold_job_completed>> terminate_emr_cluster>>merge_customer
+gold_script_upload_task>>gold_job>>is_gold_job_completed>> terminate_emr_cluster>>merge_customer>>merge_product
+
+
+
 
