@@ -20,6 +20,9 @@ spark=SparkSession.builder \
 order_details_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
+                        .option("multiLine", "true")\
+                        .option("quote", '"')\
+                        .option("escape", '"')\
                         .load(f"s3://{bucket}/Bronze/order_details/date={process_date}/")
 
 
@@ -34,7 +37,13 @@ if order_details_df.count()>0:
 
     #create dataframe with new columns using withColumn()
     order_details_final_df = renamed_order_details.withColumn("ingestion_date",current_date())
-
+    order_details_final_df=order_details_final_df.select(
+        "order_details_id",
+        "order_id",
+        "product_id",
+        "product_quantity",
+        "ingestion_date"
+    )
     order_details_final_df.write \
         .partitionBy("ingestion_date") \
         .mode("overwrite") \
