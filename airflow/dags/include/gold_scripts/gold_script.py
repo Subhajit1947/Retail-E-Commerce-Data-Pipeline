@@ -2,7 +2,7 @@ from pyspark.sql.functions import current_timestamp,current_date,lit,concat_ws,c
 from pyspark.sql import SparkSession
 from pyspark.sql.types import TimestampType
 import sys
-
+from datetime import datetime
 def get_arg(flag, default=None):
     if flag in sys.argv:
         return sys.argv[sys.argv.index(flag) + 1]
@@ -23,7 +23,15 @@ spark=SparkSession.builder \
 customer_df =spark.read.format("parquet")\
         .load(f"s3://{bucket}/Silver/customers/ingestion_date={process_date}")
 
+product_df =spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/products/ingestion_date={process_date}")
 
+order_year=datetime.strptime(process_date,"%Y-%m-%d").year
+order_df =spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/orders/order_year={order_year}")
+
+order_details_df=spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/order_details/ingestion_date={process_date}")
 
 jdbc_url = f"jdbc:postgresql://{ec2_ip}:5432/{database}"
 connection_properties = {
@@ -38,4 +46,22 @@ customer_df.write.jdbc(
     mode="append",
     properties=connection_properties,
 )
+product_df.write.jdbc(
+    url=jdbc_url,
+    table="sales.stage_dim_product",
+    mode="append",
+    properties=connection_properties,
+)
+order_df.write.jdbc(
+    url=jdbc_url,
+    table="sales.fact_orders",
+    mode="append",
+    properties=connection_properties,
+)
 
+order_details_df.write.jdbc(
+    url=jdbc_url,
+    table="sales.fact_order_details",
+    mode="append",
+    properties=connection_properties,
+)
