@@ -17,6 +17,9 @@ spark=SparkSession.builder \
 customer_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
+                        .option("multiLine", "true")\
+                        .option("quote", '"')\
+                        .option("escape", '"')\
                         .load(f"s3://{bucket}/Bronze/customers/date={process_date}")
 if customer_df.count()>0:
     renamed_customer=customer_df.withColumnRenamed("customerId","customer_id")\
@@ -46,6 +49,25 @@ if customer_df.count()>0:
                         .withColumn("cust_first_name", element_at(split(col("cust_name"), " "), 1))\
                         .withColumn("cust_last_name", element_at(split(col("cust_name"), " "), 2))\
                         .drop("cust_name")
+
+    customer_final_df=customer_final_df.select(
+        "cdc_operation",
+        "customer_id",
+        "cust_email",
+        "cust_phone",
+        "cust_address",
+        "cust_country",
+        "cust_city",
+        "state",
+        "hash_value",
+        "record_start_ts",
+        "record_end_ts",
+        "active_flag",
+        "cust_first_name",
+        "cust_last_name",
+        "ingestion_date"
+    )
+    print(customer_final_df.show(10))
     
     customer_final_df.write \
         .partitionBy("ingestion_date") \
