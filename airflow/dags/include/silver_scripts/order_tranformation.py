@@ -20,6 +20,9 @@ spark=SparkSession.builder \
 order_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
+                        .option("multiLine", "true")\
+                        .option("quote", '"')\
+                        .option("escape", '"')\
                         .load(f"s3://{bucket}/Bronze/orders/date={process_date}")
 
 
@@ -36,6 +39,17 @@ if order_df.count()>0:
                     .withColumn("order_month", month(col("order_date")))\
                     .withColumn("ingestion_date", current_date())\
                     .orderBy(col("order_date").desc())
+    orders_final_df=orders_final_df.select(
+            "order_id",
+            "order_customer_id",
+            "order_date",
+            "order_status",
+            "payment_method",
+            "order_platform",
+            "order_year",
+            "order_month",
+            "ingestion_date"
+    )
     orders_final_df.write \
         .partitionBy("order_year")\
         .mode("overwrite") \
