@@ -25,13 +25,13 @@ customer_df =spark.read.format("parquet")\
 
 product_df =spark.read.format("parquet")\
         .load(f"s3://{bucket}/Silver/products/ingestion_date={process_date}")
+#comment order_df and order_details_df for initial load
+order_year=datetime.strptime(process_date,"%Y-%m-%d").year
+order_df =spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/orders/order_year={order_year}")
 
-# order_year=datetime.strptime(process_date,"%Y-%m-%d").year
-# order_df =spark.read.format("parquet")\
-#         .load(f"s3://{bucket}/Silver/orders/order_year={order_year}")
-
-# order_details_df=spark.read.format("parquet")\
-#         .load(f"s3://{bucket}/Silver/order_details/ingestion_date={process_date}")
+order_details_df=spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/order_details/ingestion_date={process_date}")
 
 jdbc_url = f"jdbc:postgresql://{ec2_ip}:5432/{database}"
 connection_properties = {
