@@ -5,7 +5,7 @@ BEGIN
 
 UPDATE sales.dim_product AS dp
 SET record_end_ts=b.record_start_ts-interval '1 second',
-    active_falg=0
+    active_flag=0
 FROM (
     WITH deduped_stage AS (
         SELECT *,ROW_NUMBER() OVER(PARTITION BY product_id ORDER BY record_start_ts DESC) AS row_num
@@ -38,8 +38,8 @@ FROM (
     SELECT *
     FROM deduped_stage
     WHERE row_num=1
-) b
-WHERE b.cdc_operation IN ('I','U');
+) deduped
+WHERE deduped.cdc_operation IN ('I','U');
 
 
 TRUNCATE TABLE sales.stage_dim_product;
