@@ -23,6 +23,10 @@ from ..config.data_config import (
     PAYMENT_METHODS, ORDER_PLATFORMS, SALE_EVENTS, CUSTOMER_SEGMENTS
 )
 
+ORDER_STATUSES = [
+    'Pending', 'Confirmed', 'Processing',
+    'Shipped', 'Delivered', 'Cancelled', 'Returned', 'Refunded'
+]
 class OrderGenerator(BaseGenerator):
     """
     Generates orders from existing customers and products.
@@ -104,6 +108,30 @@ class OrderGenerator(BaseGenerator):
         return datetime.combine(target_date.date(), 
                                 datetime.min.time()) + \
                timedelta(hours=hour, minutes=minute, seconds=second)
+    def _generate_order_status(self, order_datetime: datetime,
+                            reference_date: datetime = None) -> str:
+        """
+        Generate order status based on order age.
+        Recent orders -> Pending/Processing/Shipped
+        Older orders -> mostly Delivered, with some Cancelled/Returned/Refunded
+        """
+        reference_date = reference_date or self.seed_date or datetime.now()
+        days_since_order = (reference_date - order_datetime).total_seconds() / 86400
+
+        if days_since_order < 1:
+            statuses = ['Pending', 'Confirmed', 'Processing']
+            weights =  [0.55,      0.30,        0.15]
+        elif days_since_order < 3:
+            statuses = ['Processing', 'Shipped', 'Cancelled']
+            weights =  [0.30,         0.55,       0.15]
+        elif days_since_order < 7:
+            statuses = ['Shipped', 'Delivered', 'Cancelled', 'Returned']
+            weights =  [0.25,      0.55,        0.10,        0.10]
+        else:
+            statuses = ['Delivered', 'Cancelled', 'Returned', 'Refunded']
+            weights =  [0.85,        0.05,        0.06,        0.04]
+
+        return random.choices(statuses, weights=weights, k=1)[0]
     
     def generate_daily_orders(self, target_date: datetime,
                                customers_df: pd.DataFrame,
@@ -140,6 +168,8 @@ class OrderGenerator(BaseGenerator):
             # Generate order
             order_uuid = self.generate_uuid()
             order_datetime = self._generate_order_datetime(target_date)
+
+            order_status = self._generate_order_status(order_datetime)
             
             # Payment method (weighted)
             payment = random.choices(
@@ -159,6 +189,7 @@ class OrderGenerator(BaseGenerator):
                 'orderId': order_uuid,
                 'customerId': customer['customerId'],
                 'orderDate': order_datetime,
+                'orderStatus': order_status,
                 'paymentMethod': payment,
                 'orderPlatform': platform,
             }

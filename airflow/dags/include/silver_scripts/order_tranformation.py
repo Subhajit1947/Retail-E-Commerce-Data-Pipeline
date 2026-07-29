@@ -31,6 +31,7 @@ if order_df.count()>0:
     renamed_orders = orders_with_date.withColumnRenamed("orderId","order_id")\
                         .withColumnRenamed("customerId","order_customer_id")\
                         .withColumnRenamed("orderDate","order_date")\
+                        .withColumnRenamed("orderStatus","order_status")\
                         .withColumnRenamed("paymentMethod","payment_method")\
                         .withColumnRenamed("orderPlatform", "order_platform")\
                         .drop("op")

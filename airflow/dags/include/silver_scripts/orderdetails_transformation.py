@@ -26,8 +26,8 @@ order_details_df=spark.read.format("csv")\
                         .load(f"s3://{bucket}/Bronze/order_details/date={process_date}/")
 
 
-if order_details_df.count()>0:
-    renamed_order_details = order_details_df.withColumnRenamed("orderDetailId","order_details_id ")\
+if order_details_df.count()>0:                                  
+    renamed_order_details = order_details_df.withColumnRenamed("orderDetailId","order_details_id")\
                         .withColumnRenamed("orderId","order_id")\
                         .withColumnRenamed("productid","product_id")\
                         .withColumnRenamed("Quantity","product_quantity")\
