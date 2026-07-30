@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW sales.mv_sales_mark AS
+CREATE MATERIALIZED VIEW sales.mv_sales_mart AS
 SELECT
     fo.order_id,
     fo.order_date,

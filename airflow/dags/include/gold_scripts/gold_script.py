@@ -23,8 +23,7 @@ spark=SparkSession.builder \
 customer_df =spark.read.format("parquet")\
         .load(f"s3://{bucket}/Silver/customers/ingestion_date={process_date}")
 
-product_df =spark.read.format("parquet")\
-        .load(f"s3://{bucket}/Silver/products/ingestion_date={process_date}")
+
 #comment order_df and order_details_df for initial load
 order_year=datetime.strptime(process_date,"%Y-%m-%d").year
 order_df =spark.read.format("parquet")\
@@ -46,22 +45,27 @@ customer_df.write.jdbc(
     mode="append",
     properties=connection_properties,
 )
-product_df.write.jdbc(
+try:
+    product_df =spark.read.format("parquet")\
+        .load(f"s3://{bucket}/Silver/products/ingestion_date={process_date}")
+    product_df.write.jdbc(
+        url=jdbc_url,
+        table="sales.stage_dim_product",
+        mode="append",
+        properties=connection_properties,
+    )
+except Exception as e:
+    print("no new or updated product")
+order_df.write.jdbc(
     url=jdbc_url,
-    table="sales.stage_dim_product",
+    table="sales.fact_orders",
     mode="append",
     properties=connection_properties,
 )
-# order_df.write.jdbc(
-#     url=jdbc_url,
-#     table="sales.fact_orders",
-#     mode="append",
-#     properties=connection_properties,
-# )
 
-# order_details_df.write.jdbc(
-#     url=jdbc_url,
-#     table="sales.fact_order_details",
-#     mode="append",
-#     properties=connection_properties,
-# )
+order_details_df.write.jdbc(
+    url=jdbc_url,
+    table="sales.fact_order_details",
+    mode="append",
+    properties=connection_properties,
+)
