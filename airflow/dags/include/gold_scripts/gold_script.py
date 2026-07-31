@@ -27,6 +27,7 @@ customer_df =spark.read.format("parquet")\
 #comment order_df and order_details_df for initial load
 order_year=datetime.strptime(process_date,"%Y-%m-%d").year
 order_df =spark.read.format("parquet")\
+        .option("basePath",f"s3://{bucket}/Silver/orders/")\
         .load(f"s3://{bucket}/Silver/orders/order_year={order_year}")
 
 order_details_df=spark.read.format("parquet")\
