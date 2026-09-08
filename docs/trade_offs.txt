@@ -1,0 +1,67 @@
+The Detailed Business Problem
+Scenario:
+You are the Data Engineer at a rapidly growing e-commerce startup (Scaling from 50K to 500K orders per month). The business stakeholders (Marketing, Product, and Finance) are screaming for data, but the current setup is a disaster:
+
+The "Production Lock" Problem: Analysts run heavy GROUP BY queries directly on the production PostgreSQL transactional database (OLTP). During peak sales hours (12 PM - 4 PM), these heavy analytical queries lock tables, causing checkout timeouts and lost revenue.
+
+The "Lost History" Problem: The production database only keeps the current state of a customer (e.g., current address) and product (e.g., current category). Last year, a customer lived in New York but now lives in California. Marketing wants to segment historical sales by the customer's location at the time of purchase to see if New Yorkers bought more sneakers than Californians. Currently, this data is overwritten and completely lost.
+
+The "Fragmented Data" Problem: Order data is exported daily as CSV files from a third-party payment gateway. Customer data comes from the internal CRM. Product catalogs come from an external vendor via SFTP. These three sources have different update timings and formats.
+
+The "Dashboard Lag" Problem: The CEO wants a unified daily sales dashboard (Revenue by Product, Region, Customer Segment). Currently, the BI team manually downloads CSVs, cleans them in Excel, and uploads them to QuickSight—taking 4 hours every morning. By the time they finish, the data is already a day old, and the manual process is error-prone.
+
+The Core Business Goal:
+Build an automated, scheduled, and resilient pipeline that extracts this fragmented data, preserves full historical context (SCD Type 2), centralizes it into a dedicated analytics database (isolated from production), and pre-computes a sales mart so that business users can query instantly without writing complex joins—all while keeping cloud infrastructure costs under $10/day.
+
+The Trade-Offs (Engineering Judgment)
+Here is the "Trade-offs & Decisions" section you need to add to your README or interview pitch. These are the exact things a Senior Engineer wants to hear:
+
+1. Batch (Daily) vs. Real-Time (Streaming)
+The Trade-off: We process data once daily at midnight (batch) instead of using Kafka/Spark Streaming (real-time).
+
+Why I chose it: The business requirement is "daily sales reports" and "cohort analysis." The CEO doesn't need millisecond latency; they need accuracy and historical depth. Real-time would introduce massive complexity (state management, out-of-order events, CDC connectors) and significantly higher cloud costs (always-on compute).
+
+The Downside: If a flash sale happens at 2 PM, the data won't be reflected in the dashboards until 1 AM the next day. We accepted this lag for a 70% reduction in engineering overhead and costs.
+
+2. SCD Type 2 (Full History) vs. Type 1 (Overwrite)
+The Trade-off: We store multiple versions of a customer/product to track historical changes (Type 2) instead of just overwriting the old data (Type 1).
+
+Why I chose it: Marketing required "Time-travel" analytics (e.g., sales by region at the time of the order). This justifies the added complexity of record_start_ts, record_end_ts, and active_flag.
+
+The Downside: Storage costs grew by ~30% because we keep every historical change. Queries that don't filter by active_flag can accidentally double-count active customers. We mitigated this by creating a pre-joined mv_sales_mart so analysts don't have to touch the raw SCD tables.
+
+3. PostgreSQL (OLTP) as the Data Warehouse vs. Analytical DB (Redshift/Snowflake)
+The Trade-off: We loaded the Gold layer into standard PostgreSQL instead of a cloud-native analytical database like Redshift or Snowflake.
+
+Why I chose it: Our total dataset size is currently < 100 GB (including history). PostgreSQL with proper indexing (BTREE on foreign keys) handles this scale perfectly. Redshift's minimum cluster cost ($0.25/hour) is significantly more expensive than a t3.large PostgreSQL RDS instance. We prioritized cost-efficiency over petabyte-scale scalability.
+
+The Downside: PostgreSQL fails on extremely complex window functions or 50-way joins. We mitigated this by pre-joining everything into the materialized view (mv_sales_mart), ensuring queries are always simple SELECT * scans.
+
+4. Ephemeral (Transient) EMR Clusters vs. Persistent Clusters
+The Trade-off: We spin up a new EMR cluster, run 4 Spark jobs, and terminate it immediately (ephemeral) instead of leaving a persistent cluster running 24/7.
+
+Why I chose it: Spark is heavy. A 3-node m5.xlarge cluster costs ~$1.50/hour. Running it 24/7 would cost ~$1,080/month. Running it for just 45 minutes/day costs ~$25/month. We saved ~97% on compute costs.
+
+The Downside: Cold-start delays. Spinning up a new EMR cluster takes ~5-7 minutes before Spark even starts processing. We accepted a 15-minute total pipeline runtime instead of a 3-minute runtime to save hundreds of dollars monthly.
+
+5. Hash-Based Change Detection vs. Raw Column Comparisons
+The Trade-off: We calculate a SHA-256 hash_value for each row in Silver and compare only the hash in the Postgres merge procedure, rather than comparing every column (name, email, address, city, etc.) one by one.
+
+Why I chose it: A single hash comparison (!=) is exponentially faster in SQL than writing WHERE a.name != b.name OR a.email != b.email OR a.address != b.address... (which uses a giant OR clause and kills query performance).
+
+Critical Implementation Note (My Fix): I used concat_ws to build the hash string instead of concat. concat returns NULL if any column is NULL, breaking the entire change detection. By using concat_ws (and treating NULLs as empty strings), the hash works reliably. I also used IS DISTINCT FROM in the merge instead of != to handle NULL edge-cases properly.
+
+6. Parquet for Silver vs. Keeping it as CSV
+The Trade-off: We converted Bronze CSVs to Parquet (columnar storage) in the Silver layer.
+
+Why I chose it: Parquet compresses data by ~75% (saving S3 storage costs) and supports predicate pushdown. When we read the Silver layer for the Gold load, Spark only reads the specific columns and partitions we need.
+
+The Downside: Parquet files are binary; you can't open them in a text editor to debug visually. We mitigated this by keeping the original CSV files intact in the Bronze layer as the "source of truth" for manual inspection.
+
+7. Materialized View (MV) vs. Live Queries / Views
+The Trade-off: We built a physical mv_sales_mart (materialized view) instead of a standard SQL view.
+
+Why I chose it: QuickSight refreshes every 15 minutes. If QuickSight queried a standard view, it would have to join fact_orders (10M rows) with dim_customer (1M rows) every time a dashboard loaded—causing massive 20-second query times.
+
+The Downside: The MV is stale; it only updates when we run REFRESH. Furthermore, REFRESH MATERIALIZED VIEW locks the table, blocking QuickSight reads during the refresh. My Fix: I added a unique index and used REFRESH MATERIALIZED VIEW CONCURRENTLY to allow reads during the refresh, eliminating dashboard downtime.
+
