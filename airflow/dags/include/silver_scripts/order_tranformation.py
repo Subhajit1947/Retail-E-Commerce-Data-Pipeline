@@ -1,4 +1,4 @@
-from pyspark.sql.functions import current_date,col,to_date,year,month
+from pyspark.sql.functions import current_date,col,to_date,year,month,lit
 from pyspark.sql import SparkSession
 from pyspark.sql.types import DateType
 import sys
@@ -16,7 +16,9 @@ if not bucket:
 spark=SparkSession.builder \
     .appName("Retail Customer Data") \
     .getOrCreate()
-    
+
+spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+
 order_df=spark.read.format("csv")\
                         .option("inferSchema","true")\
                         .option("header","true")\
@@ -38,7 +40,7 @@ if order_df.count()>0:
     orders_final_df=renamed_orders\
                     .withColumn("order_year", year(col("order_date")))\
                     .withColumn("order_month", month(col("order_date")))\
-                    .withColumn("ingestion_date", current_date())\
+                    .withColumn("ingestion_date", lit(process_date))\
                     .orderBy(col("order_date").desc())
     orders_final_df=orders_final_df.select(
             "order_id",
@@ -52,7 +54,7 @@ if order_df.count()>0:
             "ingestion_date"
     )
     orders_final_df.write \
-        .partitionBy("order_year")\
+        .partitionBy("order_year","ingestion_date")\
         .mode("overwrite") \
         .parquet(f"s3://{bucket}/Silver/orders/")
 
