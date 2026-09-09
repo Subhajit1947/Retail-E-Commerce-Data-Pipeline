@@ -64,9 +64,9 @@ A Senior Engineer tests for reruns. Here is how this pipeline behaves:
 
 ## 6. Amazon QuickSight Dashboard
 
-![Architecture Diagram](docs\images\d1.png)
-![Architecture Diagram](docs\images\d2.png)
-![Architecture Diagram](docs\images\d3.png)
+![Architecture Diagram](docs/images/d1.png)
+![Architecture Diagram](docs/images/d2.png)
+![Architecture Diagram](docs/images/d3.png)
 
 
 ---
