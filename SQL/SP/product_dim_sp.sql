@@ -4,7 +4,7 @@ AS $$
 BEGIN
 
 UPDATE sales.dim_product AS dp
-SET record_end_ts=b.record_start_ts-interval '1 second',
+SET record_end_ts=b.record_start_ts-INTERVAL '1 second',
     active_flag=0
 FROM (
     WITH deduped_stage AS (
@@ -18,7 +18,8 @@ FROM (
 WHERE dp.product_id=b.product_id
     AND dp.active_flag=1
     AND dp.record_end_ts>b.record_start_ts
-    AND b.cdc_operation IN ('D','U');
+    AND b.cdc_operation IN ('D','U')
+    AND dp.hash_value IS DISTINCT FROM b.hash_value;
 
 
 -- Insert records into dim_product for all I and U records from the deduplicated table

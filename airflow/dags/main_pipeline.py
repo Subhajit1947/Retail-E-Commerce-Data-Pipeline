@@ -24,7 +24,7 @@ from airflow.providers.amazon.aws.sensors.emr import EmrJobFlowSensor, EmrStepSe
 
 from datetime import datetime
 
-from include.utils.helper import run_daily_pipeline
+# from include.utils.helper import run_daily_pipeline
 import os 
 
 
@@ -126,16 +126,18 @@ dag=DAG(
     catchup=False
 )
 
-generate_data_and_upload_to_s3=PythonOperator(
-    task_id="daily_data_load_dag",
-    python_callable=run_daily_pipeline,
-    op_kwargs={
-        "s3_bucket":s3_bucket,
-        "aws_key":aws_key,
-        "aws_secret":aws_secret
-    },
-    dag=dag
-)
+## in production data is already dumped in s3 Bronze or in future this function is called using cron job
+
+# generate_data_and_upload_to_s3=PythonOperator(
+#     task_id="daily_data_load_dag",
+#     python_callable=run_daily_pipeline,
+#     op_kwargs={
+#         "s3_bucket":s3_bucket,
+#         "aws_key":aws_key,
+#         "aws_secret":aws_secret
+#     },
+#     dag=dag
+# )
 
 order_detail_script_upload_task = PythonOperator(
     task_id= 'Order_Details_Script_To_S3',
@@ -335,7 +337,8 @@ merge_product=SQLExecuteQueryOperator(
     dag=dag
 )
 
-generate_data_and_upload_to_s3>>[order_detail_script_upload_task,order_script_upload_task,customer_script_upload_task,product_script_upload_task]>>create_emr_cluster
+# generate_data_and_upload_to_s3>>
+[order_detail_script_upload_task,order_script_upload_task,customer_script_upload_task,product_script_upload_task]>>create_emr_cluster
 create_emr_cluster>>is_emr_cluster_created>>[order_details_silver_job,order_silver_job,product_silver_job,customer_silver_job]
 order_silver_job >> is_order_job_completed
 order_details_silver_job >> is_order_details_job_completed
