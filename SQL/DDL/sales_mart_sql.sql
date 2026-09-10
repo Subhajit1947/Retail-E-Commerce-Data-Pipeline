@@ -19,7 +19,7 @@ FROM
     sales.fact_orders fo
     JOIN sales.fact_order_details fod ON fo.order_id=fod.order_id
     JOIN sales.dim_product dp ON fod.product_id=dp.product_id AND fo.order_date>=dp.record_start_ts AND fo.order_date<dp.record_end_ts
-    JOIN sales.dim_customer dc ON fo.order_customer_id=dc.customer_id AND fo.order_date>=dp.record_start_ts AND fo.order_date<dp.record_end_ts
+    JOIN sales.dim_customer dc ON fo.order_customer_id=dc.customer_id AND fo.order_date>=dc.record_start_ts AND fo.order_date<dc.record_end_ts
 
 
 
